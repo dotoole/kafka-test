@@ -26,7 +26,7 @@ public class KafkaTestApplication {
 		SpringApplication.run(KafkaTestApplication.class, args);
 	}
 
-    @KafkaListener(group = "test-consumer-group", topics = "test")
+    @KafkaListener(topics = "test")
     public void listen(final ConsumerRecord<?, ?> cr) throws Exception {
         logger.info("Message recieved! - {}", cr.value());
     }
