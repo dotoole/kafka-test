@@ -1,39 +1,88 @@
-buildscript {
-	ext {
-		springBootVersion = '2.0.0.RELEASE'
-	}
-	repositories {
-		mavenCentral()
-	}
-	dependencies {
-		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-	}
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+	id 'com.palantir.docker' version '0.20.1'
+	id 'com.palantir.docker-run' version '0.20.1'
+	id 'org.springframework.boot' version '2.0.4.RELEASE'
+	id 'pl.allegro.tech.build.axion-release' version '1.9.2'
 }
+
+project.version = scmVersion.version
+
+ext.packageVersion = project.hasProperty('packageVersion') ? project.getProperty('packageVersion') : project.version
+// turn snapshot versions into alpha versions with date
+if (ext.packageVersion.endsWith('-SNAPSHOT')) {
+	ext.packageVersion = ext.packageVersion[0..-10] + "-alpha." + new Date().format('yyyyMMdd.HHmm')
+}
+
+// now the version has been set, we can load in our nexus configuration which applies the maven-publish plugin.
+apply from: 'http://nexus.jupiter.bbc.co.uk/gradle/nexus-2.gradle'
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
+apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
-group = 'uk.dotoole'
-version = '0.0.1-SNAPSHOT'
 sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
-repositories {
-	mavenCentral()
+wrapper {
+	gradleVersion = '4.10'
 }
 
 dependencyManagement {
-    imports {
-        mavenBom 'org.springframework.cloud:spring-cloud-zookeeper-dependencies:1.1.3.RELEASE'
-        mavenBom 'org.springframework.cloud:spring-cloud-config:1.4.2.RELEASE'
-    }
+	imports {
+		mavenBom 'org.springframework.cloud:spring-cloud-config:2.0.1.RELEASE'
+	}
+	resolutionStrategy {
+		cacheChangingModulesFor 0, 'seconds'
+	}
 }
 
 dependencies {
-	compile('org.springframework.boot:spring-boot-starter')
-	compile('org.springframework.kafka:spring-kafka')
-	compile('org.springframework.cloud:spring-cloud-starter-zookeeper-config')
-//	runtime('org.postgresql:postgresql')
-	testCompile('org.springframework.boot:spring-boot-starter-test')
+	implementation('uk.co.bbc.jupiter:jupiter-nt-model:1.0.5')
+	implementation('uk.co.bbc.jupiter:jupiter-nt-libraries-messaging:0.1.0-SNAPSHOT') { changing = true }
+	implementation('org.springframework.boot:spring-boot-starter-web')
+	implementation('org.springframework.boot:spring-boot-starter-actuator')
+	implementation('org.springframework.cloud:spring-cloud-starter-config')
+	implementation('org.springframework.kafka:spring-kafka')
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.8.8")
+	implementation('io.springfox:springfox-swagger2:2.9.2')
+	implementation('io.springfox:springfox-swagger-ui:2.9.2')
+	testImplementation('org.springframework.boot:spring-boot-starter-test')
+	testImplementation('org.springframework.kafka:spring-kafka-test')
+	testImplementation('commons-io:commons-io:2.6')
+	// workaround for bug in log4j pom: https://github.com/spring-projects/spring-kafka/issues/422
+	testCompile('log4j:log4j:1.2.17')
+}
+
+bootJar {
+	archiveName = "${project.name}.jar"
+}
+
+springBoot {
+	buildInfo {
+		properties {
+			additional = buildDependencies()
+		}
+	}
+}
+
+// build a list of jar dependencies to be included in a buildinfo properties file
+// this is then exposed in an spring-actuator /info endpoint
+def buildDependencies() {
+	def dependencyMap = [:]
+	configurations.runtime.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+		def id = artifact.moduleVersion.id
+		dependencyMap["dependencies.${id.name}"] = "${id.version}"
+	}
+	return dependencyMap
+}
+
+task packageVersion() {
+	doLast {
+		print "Package version: " + packageVersion
+	}
 }
