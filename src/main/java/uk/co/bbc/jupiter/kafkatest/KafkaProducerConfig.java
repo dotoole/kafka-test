@@ -85,7 +85,7 @@ public class KafkaProducerConfig extends MessageProducerConfig {
                 props.put(ProducerConfig.LINGER_MS_CONFIG, 1);
                 props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
                 props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-
+                props.put("metadata.broker.list",bootstrapServers);
                 props.put("security.protocol", "SSL");
                 props.put("ssl.truststore.location", trustStoreLocation);
                 props.put("ssl.truststore.password", "confluent");
