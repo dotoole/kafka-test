@@ -8,9 +8,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.handler.annotation.Payload;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -64,8 +67,8 @@ public class KafkaConsumerConfig {
         }
 
 
-//        @KafkaListener(topics = "${spring.kafka.topic.produce.to}", groupId = "${jupiter.kafka.consumer.group-id}")
-//        public void listen(@Payload Message message) throws Exception {
-//                logger.info("Message recieved! - {}", message);
-//        }
+        @KafkaListener(topics = "${spring.kafka.topic.produce.to}", group = "${jupiter.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
+        public void listen(@Payload Message message) throws Exception {
+                logger.info("Message recieved! - {}", message);
+        }
 }

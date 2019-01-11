@@ -40,7 +40,7 @@ public class KafkaJupiterConsumer {
         private String kafkaTopic;
 
 
-        @KafkaListener(topics = "${spring.kafka.topic.produce.to}", groupId = "${jupiter.kafka.consumer.group-id}")
+        @KafkaListener(topics = "${spring.kafka.topic.produce.to}", group = "${jupiter.kafka.consumer.group-id}",  containerFactory = "kafkaListenerContainerFactory")
         public void listen(final ConsumerRecord<?, ?> cr) throws Exception {
                 logger.info("Message recieved! - {}", cr.value());
         }
